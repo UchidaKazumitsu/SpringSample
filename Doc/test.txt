@@ -1,0 +1,131 @@
+package fs;
+
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.util.Enumeration;
+import java.util.Iterator;
+import java.util.jar.Attributes;
+import java.util.jar.JarEntry;
+import java.util.jar.JarFile;
+import java.util.jar.Manifest;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipFile;
+
+public class TestMain {
+
+	public static void main(String[] args) throws IOException {
+		String[] paths =  System.getProperty("java.class.path").split(";");
+		System.out.println(System.getenv("CLASSPATH"));
+		sysoutJars(paths);
+	}
+
+	public static void sysoutJars(String[] args) throws IOException {
+
+		String[] paths =  System.getProperty("java.class.path").split(";");
+		for (String string : paths) {
+			if (!string.endsWith(".jar")){
+				continue;
+			}
+			System.out.println(string);
+
+
+			File file = new File(string);
+			try (JarFile jarFile = new JarFile(file)) {
+				Manifest manifest = jarFile.getManifest(); //マニフェストの取得
+
+				// jarファイル内のファイルとディレクトリを表示
+				//printEntries(jarFile);
+
+				// マニフェストの内容を表示
+				//printManifestAttributes(manifest);
+
+				// jarファイル内のファイルを読み込む
+				//printFile(jarFile, "META-INF/MANIFEST.MF");
+
+				// マニフェストの属性取得
+				String classPath = getManifestAttribute(manifest, "Class-Path");
+
+				if(classPath != null ){
+					String[] paths2 = classPath.split(" ");
+					sysoutJars(paths2);
+				}
+
+				// jarファイル内のクラスを呼び出す
+				//callCalc(file, className);
+			}
+		}
+
+	}
+
+
+
+	/**
+	 * jarファイル内のファイルとディレクトリの一覧を表示する
+	 *
+	 * @param jarFile	jarファイル
+	 */
+	private static void printEntries(JarFile jarFile) {
+		System.out.println("↓JarEntry");
+
+		for (Enumeration<JarEntry> e = jarFile.entries(); e.hasMoreElements();) {
+			JarEntry entry = e.nextElement();
+			String dir = entry.isDirectory() ? "D" : "F";
+			System.out.printf("[%s]%s%n", dir, entry.getName());
+		}
+	}
+
+	/**
+	 * マニフェストの内容を全て表示する
+	 *
+	 * @param manifest	マニフェスト
+	 */
+	private static void printManifestAttributes(Manifest manifest) {
+		System.out.println("↓MainAttributes");
+
+		Attributes ma = manifest.getMainAttributes();
+		for (Iterator<Object> i = ma.keySet().iterator(); i.hasNext();) {
+			Object key = i.next();
+			String val = (String) ma.get(key);
+			System.out.printf("[%s]=[%s]%n", key, val);
+		}
+	}
+	/**
+	 * マニフェストの属性を取得する
+	 *
+	 * @param manifest	マニフェスト
+	 * @param key	キー
+	 * @return 	値
+	 */
+	private static String getManifestAttribute(Manifest manifest, String key) {
+		Attributes a = manifest.getMainAttributes();
+		return a.getValue(key);
+	}
+
+	/**
+	 * zipファイル内のファイルの内容を出力する
+	 *
+	 * @param zipFile	zipファイル
+	 * @param name	ファイル名
+	 * @throws IOException
+	 */
+	private static void printFile(ZipFile zipFile, String name) throws IOException {
+		System.out.println("↓printFile");
+
+		ZipEntry ze = zipFile.getEntry(name);
+
+		// テキストファイルとして読み込む（JDK1.7 [2014-04-16]）
+		try (BufferedReader reader = new BufferedReader(new InputStreamReader(zipFile.getInputStream(ze)))) {
+			for (;;) {
+				String text = reader.readLine();
+				if (text == null) {
+					break;
+				}
+				System.out.println(text);
+			}
+		}
+	}
+
+}
+
